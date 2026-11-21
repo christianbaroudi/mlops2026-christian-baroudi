@@ -1,0 +1,31 @@
+[project]
+name = "rental-pricing"
+version = "0.1.0"
+description = "Suggested nightly price for new rental listings: an end-to-end MLOps project."
+authors = [
+    { name = "Christian Baroudi" }
+]
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "mlflow>=3.18.0",
+    "numpy>=2.4.6",
+    "pandas>=3.1.1",
+    "scikit-learn>=1.9.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
