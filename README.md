@@ -41,7 +41,26 @@ $env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"      # Windows PowerShell
 
 ## Running the jobs
 
-_To be completed as each stage is added._
+Every stage is a class behind one shared interface (`rental_pricing.base.Stage`, with a
+`run()` method). The scripts in `scripts/` only parse arguments and call these classes.
+
+### 1. Preprocess
+
+Cleans a raw listings file: unifies category spellings, turns impossible values
+(e.g. `guests = 0`, `bedrooms = -1`, `min_nights = 9999`) into missing values, parses
+dates and `t`/`f` flags. For training it also drops duplicate rows and rows without a
+valid price; `--keep-all-rows` keeps every row (scoring mode).
+
+```bash
+uv run python scripts/preprocess.py --input data/drop-1/listings.csv --output data/processed/drop-1.csv
+```
+
+### Lint
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+```
 
 ## Metric
 
