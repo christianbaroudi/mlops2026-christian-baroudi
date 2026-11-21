@@ -62,6 +62,11 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`), on every pull request: `uv sync --locked`, the lint
+  check, and a run of preprocessing on the sample in `tests/data/`.
+
 ## Metric
 
 _To be completed: the metric optimised during training, and why._
