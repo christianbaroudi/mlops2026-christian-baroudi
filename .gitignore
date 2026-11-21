@@ -1,0 +1,31 @@
+# Data drops: never committed (the tiny CI sample lives in tests/data/)
+/data/
+
+# Exported models (published as a GitHub release, never in Git history)
+/release/
+
+# Prediction logs
+/logs/
+
+# MLflow local tracking
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Local Claude Code settings
+.claude/settings.local.json
