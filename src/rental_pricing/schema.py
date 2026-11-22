@@ -27,6 +27,40 @@ NUMERIC = [
     "rating_clean",
 ]
 
+# Every amenity that appears in the "|"-separated amenities column.
+AMENITIES = [
+    "kitchen",
+    "wifi",
+    "smoke alarm",
+    "hot water",
+    "essentials",
+    "dishes and silverware",
+    "bed linens",
+    "hair dryer",
+    "cooking basics",
+    "refrigerator",
+    "microwave",
+    "hangers",
+    "iron",
+    "heating",
+    "tv",
+    "hot water kettle",
+    "washer",
+    "dedicated workspace",
+    "shampoo",
+    "cleaning products",
+    "wine glasses",
+    "oven",
+    "dining table",
+    "baking sheet",
+    "dishwasher",
+    "freezer",
+    "toaster",
+    "shower gel",
+    "coffee maker",
+    "self check-in",
+]
+
 # Values outside these (inclusive) bounds are impossible and become missing.
 # None means "no bound on that side".
 VALID_RANGES = {

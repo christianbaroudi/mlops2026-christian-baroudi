@@ -21,3 +21,6 @@ jobs:
 
       - name: Preprocess the sample
         run: uv run python scripts/preprocess.py --input tests/data/listings_sample.csv --output data/processed/sample.csv
+
+      - name: Build features on the sample
+        run: uv run python scripts/features.py --input data/processed/sample.csv --landmarks tests/data/landmarks.csv --output data/features/sample.csv

@@ -55,6 +55,17 @@ valid price; `--keep-all-rows` keeps every row (scoring mode).
 uv run python scripts/preprocess.py --input data/drop-1/listings.csv --output data/processed/drop-1.csv
 ```
 
+### 2. Features
+
+Adds the columns the model learns from: the distance (km) to each landmark, the number
+of baths and a shared-bath flag (from `bath_desc`), one 0/1 column per amenity, and
+durations instead of dates (host years, days since the first and last review, measured
+from a fixed reference date). Rows are never removed.
+
+```bash
+uv run python scripts/features.py --input data/processed/drop-1.csv --landmarks data/landmarks.csv --output data/features/drop-1.csv
+```
+
 ### Lint
 
 ```bash
@@ -65,7 +76,7 @@ uv run ruff format --check .
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`), on every pull request: `uv sync --locked`, the lint
-  check, and a run of preprocessing on the sample in `tests/data/`.
+  check, and a run of preprocessing and features on the sample in `tests/data/`.
 
 ## Metric
 
