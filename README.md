@@ -66,6 +66,30 @@ from a fixed reference date). Rows are never removed.
 uv run python scripts/features.py --input data/processed/drop-1.csv --landmarks data/landmarks.csv --output data/features/drop-1.csv
 ```
 
+### 3. Train
+
+Trains two model families through the same `build_model()` function: a linear model
+(`ridge`) and gradient boosting (`gradient_boosting`). Each family is one MLflow run
+(parameters, validation MAE, git commit, model). The one with the lowest validation MAE
+is registered as a new version of the model `rental-pricing` and gets the alias given by
+`--alias` (`champion` for drop 1, `challenger` for drop 2).
+
+The saved model is one scikit-learn pipeline: cleaning → features → encoding → regressor.
+So it takes the raw, dirty listings file directly, and scoring uses exactly the same code
+as training.
+
+```bash
+uv run python scripts/train.py --input data/processed/drop-1.csv --landmarks data/landmarks.csv --alias champion
+```
+
+Validation MAE on drop 1 (20% of the listings, never seen in training):
+
+| Model | MAE (credits) |
+| --- | --- |
+| Median price of the training rows (baseline) | 60.7 |
+| ridge | 41.0 |
+| gradient_boosting | **36.7** |
+
 ### Lint
 
 ```bash
@@ -80,4 +104,11 @@ uv run ruff format --check .
 
 ## Metric
 
-_To be completed: the metric optimised during training, and why._
+The model is graded on the **MAE in credits**, so that is what we optimise and compare:
+
+- The models learn **log(price)**. Prices go from 16 to 2549 credits and are very skewed;
+  on the log scale a few very expensive listings don't dominate training.
+- Gradient boosting uses the **absolute error loss**. On the log scale it predicts the
+  median price for similar listings, and the median is the value that minimises the MAE.
+- Model selection and promotion use the **MAE in credits** on listings the model has
+  never seen (split by `listing_key`), because the hidden set is made of new listings.

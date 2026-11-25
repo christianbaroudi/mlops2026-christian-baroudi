@@ -27,6 +27,9 @@ NUMERIC = [
     "rating_clean",
 ]
 
+# Every column of listings.csv except the target: what the model receives.
+INPUT_COLUMNS = [ROW_ID, LISTING_KEY] + CATEGORICAL + BOOLEAN + DATES + TEXT + NUMERIC
+
 # Every amenity that appears in the "|"-separated amenities column.
 AMENITIES = [
     "kitchen",
