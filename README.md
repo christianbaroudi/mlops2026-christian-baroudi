@@ -90,6 +90,30 @@ Validation MAE on drop 1 (20% of the listings, never seen in training):
 | ridge | 41.0 |
 | gradient_boosting | **36.7** |
 
+### 4. Batch scoring
+
+Scores a whole CSV file, raw and dirty as it is. The output has the columns
+`row_id,prediction`, with one row per input row (duplicates and dirty rows included).
+`--model-uri` defaults to `models:/rental-pricing@champion`; it can also be a local
+folder such as `release/model`.
+
+```bash
+uv run python scripts/score.py --input data/drop-1/listings.csv --output data/predictions/drop-1.csv
+uv run python scripts/score.py --input data/drop-1/listings.csv --output data/predictions/drop-1.csv --model-uri release/model
+```
+
+### Prediction log
+
+Batch scoring and the service log every prediction (`src/rental_pricing/prediction_log.py`)
+with the columns `logged_at, inputs, prediction, model_name, model_version, model_alias,
+latency_ms`. For batch scoring, `latency_ms` is the time of the whole job divided by the
+number of rows. With a local folder as `--model-uri`, `model_version` and `model_alias`
+are empty.
+
+- In the Compose stack, `MONITORING_DB_URI` is set, and rows go to the table `predictions`
+  of the database `monitoring` on the `db` service (created on the first insert).
+- Without it (a laptop), rows go to `logs/<run-id>/predictions.csv`, one folder per run.
+
 ### Lint
 
 ```bash
