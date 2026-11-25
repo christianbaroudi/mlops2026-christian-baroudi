@@ -1190,11 +1190,13 @@ name = "rental-pricing"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "mlflow" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "psycopg2-binary" },
     { name = "scikit-learn" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -1204,11 +1206,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.165.0" },
     { name = "mlflow", specifier = ">=3.18.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "pandas", specifier = ">=3.1.1" },
     { name = "psycopg2-binary", specifier = ">=2.9.13" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 
 [package.metadata.requires-dev]
