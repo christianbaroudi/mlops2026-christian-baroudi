@@ -11,6 +11,7 @@ Author: Christian Baroudi
 src/rental_pricing/   # the package: one class per pipeline stage, behind one shared interface
 scripts/              # one CLI script per job; they only parse arguments and call the classes
 tests/data/           # a tiny sample of the data, used by CI
+listing.json          # an example listing for the online service
 Dockerfile
 compose.yaml
 pyproject.toml
@@ -101,6 +102,32 @@ folder such as `release/model`.
 uv run python scripts/score.py --input data/drop-1/listings.csv --output data/predictions/drop-1.csv
 uv run python scripts/score.py --input data/drop-1/listings.csv --output data/predictions/drop-1.csv --model-uri release/model
 ```
+
+### 5. Online service
+
+A FastAPI service on port 8000. `POST /predict` takes one listing as JSON (the columns of
+`listings.csv`; raw values and missing fields are fine) and returns its predicted price.
+The model is loaded once, at start-up (default `models:/rental-pricing@champion`, or
+`--model-uri release/model`).
+
+```bash
+uv run python scripts/serve.py
+```
+
+Then, from another terminal, with the example listing in `listing.json`:
+
+```bash
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d @listing.json
+```
+
+```powershell
+curl.exe -X POST http://localhost:8000/predict `
+  -H "Content-Type: application/json" `
+  -d '@listing.json'
+```
+
+Answer: `{"prediction": 106.46}` (credits). The interactive docs are at
+http://localhost:8000/docs.
 
 ### Prediction log
 
