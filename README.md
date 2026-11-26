@@ -205,6 +205,9 @@ uv run ruff format --check .
 
 - **CI** (`.github/workflows/ci.yml`), on every pull request: `uv sync --locked`, the lint
   check, and a run of preprocessing and features on the sample in `tests/data/`.
+- **CD** (`.github/workflows/cd.yml`), on every merge to `master`: builds the image and
+  pushes it to `ghcr.io/christianbaroudi/mlops2026-christian-baroudi`, tagged `latest`
+  and with the commit hash.
 
 ## Metric
 
