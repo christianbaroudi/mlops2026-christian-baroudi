@@ -1,0 +1,14 @@
+# Only the code goes into the image. Data, models and logs come from bind mounts.
+.git
+.github
+.venv
+.claude
+data
+release
+logs
+mlruns
+mlartifacts
+mlflow.db
+tests
+**/__pycache__
+.env

@@ -29,3 +29,6 @@ dist/
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Compose secrets (copy .env.example to .env)
+.env
