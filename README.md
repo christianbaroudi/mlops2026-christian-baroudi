@@ -12,8 +12,10 @@ src/rental_pricing/   # the package: one class per pipeline stage, behind one sh
 scripts/              # one CLI script per job; they only parse arguments and call the classes
 tests/data/           # a tiny sample of the data, used by CI
 listing.json          # an example listing for the online service
-Dockerfile
-compose.yaml
+mlflow/Dockerfile     # the MLflow server image (official image + Postgres driver)
+Dockerfile            # the image of our jobs and service
+compose.yaml          # db, adminer, mlflow + our jobs and service
+.env.example          # copy to .env: the Postgres user, password and database
 pyproject.toml
 uv.lock
 ```
@@ -40,7 +42,51 @@ export MLFLOW_TRACKING_URI=sqlite:///mlflow.db        # macOS / Linux
 $env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"      # Windows PowerShell
 ```
 
-## Running the jobs
+## Running with Docker Compose (lab PC, PowerShell)
+
+The stack is the one of the Experiment Tracking lab (`db`, `adminer` on
+http://localhost:8081, `mlflow` on http://localhost:5001), plus one service per job and the
+online service. They all use the image that CD pushes to
+`ghcr.io/christianbaroudi/mlops2026-christian-baroudi`, and they see `./data`, `./release`
+and `./logs` through bind mounts, so a new file or model needs no rebuild.
+
+First time only:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d --wait
+```
+
+Then create the prediction log database once: in Adminer (System `PostgreSQL`, Server `db`,
+user and password from `.env`), run `CREATE DATABASE monitoring;`. Or from PowerShell:
+
+```powershell
+docker compose exec db psql -U mlflow_user -d mlflow_db -c "CREATE DATABASE monitoring;"
+```
+
+The jobs (the arguments after the service name go to the script):
+
+```powershell
+docker compose run --rm preprocess --input data/drop-1/listings.csv --output data/processed/drop-1.csv
+docker compose run --rm features --input data/processed/drop-1.csv --landmarks data/landmarks.csv --output data/features/drop-1.csv
+docker compose run --rm train --input data/processed/drop-1.csv --landmarks data/landmarks.csv --alias champion
+docker compose run --rm score --input data/drop-1/listings.csv --output data/predictions/drop-1.csv
+docker compose run --rm score --input data/drop-1/listings.csv --output data/predictions/drop-1.csv --model-uri release/model
+```
+
+The online service:
+
+```powershell
+docker compose up -d service
+curl.exe -X POST http://localhost:8000/predict `
+  -H "Content-Type: application/json" `
+  -d '@listing.json'
+```
+
+To use a locally built image instead of the one from ghcr.io, add `--build`
+(for example `docker compose run --rm --build score ...`).
+
+## Running the jobs with uv
 
 Every stage is a class behind one shared interface (`rental_pricing.base.Stage`, with a
 `run()` method). The scripts in `scripts/` only parse arguments and call these classes.
@@ -140,6 +186,13 @@ are empty.
 - In the Compose stack, `MONITORING_DB_URI` is set, and rows go to the table `predictions`
   of the database `monitoring` on the `db` service (created on the first insert).
 - Without it (a laptop), rows go to `logs/<run-id>/predictions.csv`, one folder per run.
+
+To check the last predictions in the stack (or the same query in Adminer, database
+`monitoring`):
+
+```powershell
+docker compose exec db psql -U mlflow_user -d monitoring -c "SELECT logged_at, model_name, model_version, model_alias, prediction FROM predictions ORDER BY logged_at DESC LIMIT 5;"
+```
 
 ### Lint
 

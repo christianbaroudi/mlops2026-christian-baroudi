@@ -11,7 +11,7 @@ dependencies = [
     "mlflow>=3.18.0",
     "numpy>=2.4.6",
     "pandas>=3.1.1",
-    "psycopg2-binary>=2.9.13",
+    "psycopg[binary]>=3.3.9",
     "scikit-learn>=1.9.1",
     "uvicorn>=0.54.0",
 ]
@@ -23,6 +23,8 @@ build-backend = "uv_build"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Our code is in src/ (so the mlflow/ folder at the root isn't taken for the mlflow package).
+src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B", "UP"]

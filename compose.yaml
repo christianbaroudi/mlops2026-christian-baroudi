@@ -1,0 +1,119 @@
+# The stack of the Experiment Tracking lab (db, adminer, mlflow), plus our own services.
+# Fixed project name, so containers, volumes and the network are named
+# mlops-lab-... whatever the folder is called.
+name: mlops-lab
+
+# Settings shared by all our services (YAML anchor, reused below with <<: *app).
+x-app: &app
+  # The image built and pushed by CD. `build: .` builds it locally instead, if needed.
+  image: ghcr.io/christianbaroudi/mlops2026-christian-baroudi:latest
+  build: .
+  environment:
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+    # Prediction log: table `predictions` in the database `monitoring` on db.
+    MONITORING_DB_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/monitoring
+  volumes:
+    # Same relative paths as in the repository (the image's working directory is /app).
+    - ./data:/app/data
+    - ./release:/app/release
+    - ./logs:/app/logs
+  depends_on:
+    mlflow:
+      condition: service_healthy
+  networks:
+    - mlops-net
+  # Our services only start when named: `docker compose up -d` starts db, adminer, mlflow.
+  profiles:
+    - app
+
+services:
+  db:
+    image: postgres:18
+    # POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB, from .env, create the
+    # user and the database on the first start.
+    env_file: .env
+    volumes:
+      # Postgres 18 keeps its data under /var/lib/postgresql.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No published port: only the containers on mlops-net reach Postgres.
+    networks:
+      - mlops-net
+
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - db
+    networks:
+      - mlops-net
+
+  mlflow:
+    # The official image has no Postgres driver: mlflow/Dockerfile adds it.
+    build: ./mlflow
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # The server stores the artifacts (models, files) itself: clients upload them over HTTP.
+      - --artifacts-destination=/mlflow/artifacts
+      # Allow the service name used by our containers and the browser's host.
+      - --allowed-hosts=mlflow:5000,localhost:*,127.0.0.1:*
+    ports:
+      # Host port 5001: port 5000 is taken by AirPlay Receiver on macOS.
+      - "5001:5000"
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:5000/health')
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - mlops-net
+
+  # Jobs: `docker compose run --rm <job> <arguments>`. The arguments go to the script.
+  preprocess:
+    <<: *app
+    entrypoint: ["python", "scripts/preprocess.py"]
+
+  features:
+    <<: *app
+    entrypoint: ["python", "scripts/features.py"]
+
+  train:
+    <<: *app
+    entrypoint: ["python", "scripts/train.py"]
+
+  score:
+    <<: *app
+    entrypoint: ["python", "scripts/score.py"]
+
+  # Online service: `docker compose up -d service`, then POST http://localhost:8000/predict.
+  service:
+    <<: *app
+    entrypoint: ["python", "scripts/serve.py"]
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres-data:
+  mlflow-artifacts:
+
+networks:
+  mlops-net:
+    driver: bridge
