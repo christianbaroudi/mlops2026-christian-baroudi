@@ -1,6 +1,7 @@
 """Train stage: train every model family, log each run to MLflow, register the best one.
 
-1. Split the cleaned training file: 80% to train, 20% to validate. A listing_key is
+1. (Challenger only) leave out the new listings of drop 2, the promotion holdout.
+   Then split the training file: 80% to train, 20% to validate. A listing_key is
    never on both sides, so validation listings are new to the model (like the hidden set).
 2. For each model family: train, compute the validation MAE, log everything to MLflow,
    then retrain on all rows and log that model.
@@ -21,7 +22,7 @@ from sklearn.model_selection import GroupShuffleSplit
 from rental_pricing import schema
 from rental_pricing.base import Stage
 from rental_pricing.model import MODEL_FAMILIES, build_model
-from rental_pricing.preprocess import read_listings
+from rental_pricing.preprocess import is_new_listing, read_listings
 
 log = logging.getLogger(__name__)
 
@@ -45,15 +46,29 @@ class Trainer(Stage):
 
     name = "train"
 
-    def __init__(self, data_path, landmarks_path, alias="champion", model_name=MODEL_NAME):
+    def __init__(
+        self,
+        data_path,
+        landmarks_path,
+        alias="champion",
+        model_name=MODEL_NAME,
+        exclude_new_vs=None,
+    ):
         self.data_path = data_path
         self.landmarks_path = landmarks_path
         self.alias = alias
         self.model_name = model_name
+        # For the challenger: path of drop 1. The listings of the training file that are not
+        # in drop 1 are the promotion holdout, so they are left out of training.
+        self.exclude_new_vs = exclude_new_vs
 
     def run(self) -> dict:
         data = read_listings(self.data_path)
         landmarks = pd.read_csv(self.landmarks_path)
+        if self.exclude_new_vs:
+            new = is_new_listing(data, read_listings(self.exclude_new_vs))
+            data = data[~new].reset_index(drop=True)
+            log.info("Left out %d rows of new listings (the promotion holdout)", new.sum())
         y = pd.to_numeric(data[schema.TARGET])
         X = data.drop(columns=schema.TARGET)
 

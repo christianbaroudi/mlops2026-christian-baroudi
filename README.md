@@ -70,6 +70,9 @@ The jobs (the arguments after the service name go to the script):
 docker compose run --rm preprocess --input data/drop-1/listings.csv --output data/processed/drop-1.csv
 docker compose run --rm features --input data/processed/drop-1.csv --landmarks data/landmarks.csv --output data/features/drop-1.csv
 docker compose run --rm train --input data/processed/drop-1.csv --landmarks data/landmarks.csv --alias champion
+docker compose run --rm preprocess --input data/drop-2/listings.csv --output data/processed/drop-2.csv
+docker compose run --rm train --input data/processed/drop-2.csv --landmarks data/landmarks.csv --alias challenger --exclude-new-vs data/drop-1/listings.csv
+docker compose run --rm promote --drop-1 data/drop-1/listings.csv --drop-2 data/drop-2/listings.csv
 docker compose run --rm score --input data/drop-1/listings.csv --output data/predictions/drop-1.csv
 docker compose run --rm score --input data/drop-1/listings.csv --output data/predictions/drop-1.csv --model-uri release/model
 ```
@@ -137,7 +140,29 @@ Validation MAE on drop 1 (20% of the listings, never seen in training):
 | ridge | 41.0 |
 | gradient_boosting | **36.7** |
 
-### 4. Batch scoring
+The challenger is trained on drop 2. `--exclude-new-vs` leaves out the listings that are
+new in drop 2 (not in drop 1): they are the promotion holdout, so the challenger must
+not see them.
+
+```bash
+uv run python scripts/preprocess.py --input data/drop-2/listings.csv --output data/processed/drop-2.csv
+uv run python scripts/train.py --input data/processed/drop-2.csv --landmarks data/landmarks.csv --alias challenger --exclude-new-vs data/drop-1/listings.csv
+```
+
+### 4. Promote
+
+Decides whether the challenger replaces the champion. The holdout is the rows of drop 2
+whose `listing_key` is not in drop 1 (new listings, like the hidden set), used raw. Both
+models predict it; if the challenger's MAE is lower, the alias `champion` moves to the
+challenger's version, otherwise nothing changes. The two MAEs and the decision are logged
+as an MLflow run named `promote`. Batch scoring and the service then load the new
+champion with no code change.
+
+```bash
+uv run python scripts/promote.py --drop-1 data/drop-1/listings.csv --drop-2 data/drop-2/listings.csv
+```
+
+### 5. Batch scoring
 
 Scores a whole CSV file, raw and dirty as it is. The output has the columns
 `row_id,prediction`, with one row per input row (duplicates and dirty rows included).
@@ -149,7 +174,7 @@ uv run python scripts/score.py --input data/drop-1/listings.csv --output data/pr
 uv run python scripts/score.py --input data/drop-1/listings.csv --output data/predictions/drop-1.csv --model-uri release/model
 ```
 
-### 5. Online service
+### 6. Online service
 
 A FastAPI service on port 8000. `POST /predict` takes one listing as JSON (the columns of
 `listings.csv`; raw values and missing fields are fine) and returns its predicted price.
