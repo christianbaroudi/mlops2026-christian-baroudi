@@ -234,6 +234,61 @@ uv run ruff format --check .
   pushes it to `ghcr.io/christianbaroudi/mlops2026-christian-baroudi`, tagged `latest`
   and with the commit hash.
 
+## Releasing the model
+
+The graded model is the one attached to the latest GitHub release. On a lab PC, with the
+stack running, from the repository root (PowerShell):
+
+1. Check the registry version of the champion (it goes in the tag):
+
+   ```powershell
+   $env:MLFLOW_TRACKING_URI = "http://localhost:5001"
+   uv run python -c "from mlflow import MlflowClient; print(MlflowClient().get_model_version_by_alias('rental-pricing', 'champion').version)"
+   ```
+
+2. Export the champion (the first line deletes the previous export):
+
+   ```powershell
+   Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+   $env:MLFLOW_TRACKING_URI = "http://localhost:5001"
+   uv run mlflow artifacts download --artifact-uri "models:/rental-pricing@champion" --dst-path release/model
+   Compress-Archive release/model release/model.zip
+   ```
+
+3. On GitHub: **Releases** → **Draft a new release** → tag `model-v<version>` (the number
+   from step 1, for example `model-v2`) → attach `release/model.zip` → **Publish release**.
+
+## At the defence
+
+1. Replace the local export with the released model, and check that
+   `release/model/MLmodel` exists:
+
+   ```powershell
+   Remove-Item release/model -Recurse -Force -ErrorAction SilentlyContinue
+   Expand-Archive $HOME\Downloads\model.zip -DestinationPath release -Force
+   Test-Path release/model/MLmodel
+   ```
+
+2. Put the instructor's file in `data/` (here `data/hidden.csv`) and score it with the
+   released model:
+
+   ```powershell
+   docker compose run --rm score --input data/hidden.csv --output data/predictions/hidden.csv --model-uri release/model
+   ```
+
+3. Score it once more with the default model (`models:/rental-pricing@champion`):
+
+   ```powershell
+   docker compose run --rm score --input data/hidden.csv --output data/predictions/hidden-champion.csv
+   ```
+
+4. Check in the prediction log that `model_version` equals the version of the release
+   tag `model-v<version>`:
+
+   ```powershell
+   docker compose exec db psql -U mlflow_user -d monitoring -c "SELECT logged_at, model_name, model_version, model_alias FROM predictions ORDER BY logged_at DESC LIMIT 5;"
+   ```
+
 ## Metric
 
 The model is graded on the **MAE in credits**, so that is what we optimise and compare:
