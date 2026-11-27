@@ -101,6 +101,14 @@ def drop_training_rows(df: pd.DataFrame) -> pd.DataFrame:
     return df[~duplicated & ~no_price].reset_index(drop=True)
 
 
+def is_new_listing(df: pd.DataFrame, reference: pd.DataFrame) -> pd.Series:
+    """True for the rows whose listing_key is not in the reference file (e.g. drop 1).
+
+    In drop 2, these new listings are the promotion holdout: they look like the hidden set.
+    """
+    return ~df[schema.LISTING_KEY].isin(reference[schema.LISTING_KEY])
+
+
 class Preprocessor(Stage):
     """Read a raw listings file, clean it and write the result.
 

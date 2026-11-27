@@ -18,10 +18,20 @@ def main() -> None:
         "--alias", default="champion", help="alias of the new version: champion or challenger"
     )
     parser.add_argument("--model-name", default=MODEL_NAME, help="registered model name")
+    parser.add_argument(
+        "--exclude-new-vs",
+        help="drop 1 CSV: leave out the listings that are not in it (the promotion holdout)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    Trainer(args.input, args.landmarks, alias=args.alias, model_name=args.model_name).run()
+    Trainer(
+        args.input,
+        args.landmarks,
+        alias=args.alias,
+        model_name=args.model_name,
+        exclude_new_vs=args.exclude_new_vs,
+    ).run()
 
 
 if __name__ == "__main__":

@@ -99,6 +99,10 @@ services:
     <<: *app
     entrypoint: ["python", "scripts/train.py"]
 
+  promote:
+    <<: *app
+    entrypoint: ["python", "scripts/promote.py"]
+
   score:
     <<: *app
     entrypoint: ["python", "scripts/score.py"]
